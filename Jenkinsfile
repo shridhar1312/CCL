@@ -161,7 +161,7 @@ pipeline {
 
     stage('Terraform Init & Plan') {
       steps {
-        dir('TERRAFORM_DIR/CONFIG') {
+        dir("${params.TERRAFORM_DIR}/CONFIG") {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
             sh "terraform init -backend-config=${env.BACKEND_FILE}"
             sh "terraform plan -var-file=${env.VAR_FILE} -out=tfplan"
@@ -174,7 +174,7 @@ pipeline {
       when { branch 'main' }
       steps {
         input message: "Apply changes to ${params.ENV}?"
-        dir('TERRAFORM_DIR/CONFIG') {
+        dir("${params.TERRAFORM_DIR}/CONFIG") {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
             sh "terraform apply -auto-approve tfplan"
           }
