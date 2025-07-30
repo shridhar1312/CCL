@@ -130,6 +130,7 @@ pipeline {
 
   parameters {
     choice(name: 'ENV', choices: ['DEV','QA','PROD'], description: 'Select environment')
+    string(name: 'TERRAFORM_DIR', defaultValue: '.', description: 'Path to the Terraform code directory (e.g., ".", "IAM_ROLES", "LAMBDA")')
   }
 
   environment {
@@ -160,7 +161,7 @@ pipeline {
 
     stage('Terraform Init & Plan') {
       steps {
-        dir('CONFIG') {
+        dir('TERRAFORM_DIR/CONFIG') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
             sh "terraform init -backend-config=${env.BACKEND_FILE}"
             sh "terraform plan -var-file=${env.VAR_FILE} -out=tfplan"
@@ -173,7 +174,7 @@ pipeline {
       when { branch 'main' }
       steps {
         input message: "Apply changes to ${params.ENV}?"
-        dir('CONFIG') {
+        dir('TERRAFORM_DIR/CONFIG') {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
             sh "terraform apply -auto-approve tfplan"
           }
