@@ -149,10 +149,19 @@ pipeline {
       }
     }
 
+       stage('Prepare AWS Credentials') {
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
+          // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are injected automatically here
+          echo "Using AWS credentials from Jenkins ID 'dev'"
+        }
+      }
+    }
+
     stage('Terraform Init & Plan') {
       steps {
         dir('CONFIG') {
-          withAWS(credentials: 'aws-credentials', region: "${env.AWS_DEFAULT_REGION}") {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
             sh "terraform init -backend-config=${env.BACKEND_FILE}"
             sh "terraform plan -var-file=${env.VAR_FILE} -out=tfplan"
           }
@@ -165,7 +174,7 @@ pipeline {
       steps {
         input message: "Apply changes to ${params.ENV}?"
         dir('CONFIG') {
-          withAWS(credentials: 'aws-credentials', region: "${env.AWS_DEFAULT_REGION}") {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
             sh "terraform apply -auto-approve tfplan"
           }
         }
