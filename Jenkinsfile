@@ -67,49 +67,107 @@
 //     }
 // }
 
+// pipeline {
+//   agent any
+
+//   parameters {
+//     choice(name: 'ENV', choices: ['DEV', 'QA', 'PROD'], description: 'Select the environment to deploy')
+//     string(name: 'TERRAFORM_DIR', defaultValue: '.', description: 'Path to the Terraform code directory (e.g., ".", "IAM_ROLES", "LAMBDA")')
+//   }
+
+// environment {
+//   TF_VAR_FILE = "../ENVS/${params.ENV}/${params.ENV.toLowerCase()}.tfvars"
+//   BACKEND_FILE = "../ENVS/${params.ENV}/${params.ENV.toLowerCase()}_backend.tfvars"
+//   AWS_DEFAULT_REGION = 'us-east-1'
+// }
+
+//     tools {
+//         terraform 'terraform-1.12.2'
+//     }
+
+//   stages {
+//     stage('Terraform Init') {
+//       steps {
+//         dir("${params.TERRAFORM_DIR}") {
+//           sh 'terraform init -backend-config=${BACKEND_FILE}'
+//         }
+//       }
+//     }
+
+//     stage('Terraform Plan') {
+//       steps {
+//         dir("${params.TERRAFORM_DIR}") {
+//           sh 'terraform plan -var-file=${TF_VAR_FILE} -out=tfplan'
+//         }
+//       }
+//     }
+
+//     stage('Terraform Apply') {
+//       when {
+//         branch 'main'
+//       }
+//       steps {
+//         input message: "Apply changes to ${params.ENV} in ${params.TERRAFORM_DIR}?"
+//         dir("${params.TERRAFORM_DIR}") {
+//           sh 'terraform apply -auto-approve tfplan'
+//         }
+//       }
+//     }
+//   }
+
+//   post {
+//     success {
+//       echo "✅ Terraform applied successfully for ${params.ENV} in ${params.TERRAFORM_DIR}"
+//     }
+//     failure {
+//       echo "❌ Terraform pipeline failed for ${params.ENV} in ${params.TERRAFORM_DIR}"
+//     }
+//   }
+// }
+
 pipeline {
   agent any
 
   parameters {
-    choice(name: 'ENV', choices: ['DEV', 'QA', 'PROD'], description: 'Select the environment to deploy')
-    string(name: 'TERRAFORM_DIR', defaultValue: '.', description: 'Path to the Terraform code directory (e.g., ".", "IAM_ROLES", "LAMBDA")')
+    choice(name: 'ENV', choices: ['DEV','QA','PROD'], description: 'Select environment')
   }
 
- environment {
-  TF_VAR_FILE = "ENVS/${params.ENV}/${params.ENV.toLowerCase()}.tfvars"
-  BACKEND_FILE = "ENVS/${params.ENV}/${params.ENV.toLowerCase()}_backend.tfvars"
-  AWS_DEFAULT_REGION = 'us-east-1'
-}
+  environment {
+    AWS_DEFAULT_REGION = 'us-east-1'
+    VAR_FILE = "../ENVS/${params.ENV}/${params.ENV.toLowerCase()}.tfvars"
+    BACKEND_FILE = "../ENVS/${params.ENV}/${params.ENV.toLowerCase()}_backend.tfvars"
+  }
 
-    tools {
-        terraform 'terraform-1.12.2'
-    }
+  tools {
+    terraform 'terraform-1.12.2'  // or whatever version you configured
+  }
 
   stages {
-    stage('Terraform Init') {
+    stage('Checkout') {
       steps {
-        dir("${params.TERRAFORM_DIR}") {
-          sh 'terraform init -backend-config=${BACKEND_FILE}'
-        }
+        checkout scm
       }
     }
 
-    stage('Terraform Plan') {
+    stage('Terraform Init & Plan') {
       steps {
-        dir("${params.TERRAFORM_DIR}") {
-          sh 'terraform plan -var-file=${TF_VAR_FILE} -out=tfplan'
+        dir('CONFIG') {
+          withAWS(credentials: 'aws-credentials', region: "${env.AWS_DEFAULT_REGION}") {
+            sh "terraform init -backend-config=${env.BACKEND_FILE}"
+            sh "terraform plan -var-file=${env.VAR_FILE} -out=tfplan"
+          }
         }
       }
     }
 
     stage('Terraform Apply') {
-      when {
-        branch 'main'
-      }
+      when { branch 'main' }
       steps {
-        input message: "Apply changes to ${params.ENV} in ${params.TERRAFORM_DIR}?"
-        dir("${params.TERRAFORM_DIR}") {
-          sh 'terraform apply -auto-approve tfplan'
+        input message: "Apply changes to ${params.ENV}?"
+        dir('CONFIG') {
+          withAWS(credentials: 'aws-credentials', region: "${env.AWS_DEFAULT_REGION}") {
+            sh "terraform apply -auto-approve tfplan"
+          }
         }
       }
     }
@@ -117,10 +175,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ Terraform applied successfully for ${params.ENV} in ${params.TERRAFORM_DIR}"
+      echo "✅ Terraform applied successfully for ${params.ENV}"
     }
     failure {
-      echo "❌ Terraform pipeline failed for ${params.ENV} in ${params.TERRAFORM_DIR}"
+      echo "❌ Terraform pipeline failed for ${params.ENV}"
     }
   }
 }
