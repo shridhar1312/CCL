@@ -27,6 +27,7 @@ pipeline {
 
        stage('Prepare AWS Credentials') {
       steps {
+        echo "BRANCH_NAME=${env.BRANCH_NAME}"
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'dev']]) {
           // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are injected automatically here
           echo "Using AWS credentials from Jenkins ID 'dev'"
