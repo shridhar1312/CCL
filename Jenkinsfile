@@ -75,11 +75,11 @@ pipeline {
     string(name: 'TERRAFORM_DIR', defaultValue: '.', description: 'Path to the Terraform code directory (e.g., ".", "IAM_ROLES", "LAMBDA")')
   }
 
-  environment {
-    TF_VAR_FILE = "${params.TERRAFORM_DIR}/ENVS/${params.ENV}/${params.ENV.toLowerCase()}.tfvars"
-    BACKEND_FILE = "${params.TERRAFORM_DIR}/ENVS/${params.ENV}/${params.ENV.toLowerCase()}_backend.tfvars"
-    AWS_DEFAULT_REGION = 'us-east-1'
-  }
+ environment {
+  TF_VAR_FILE = "ENVS/${params.ENV}/${params.ENV.toLowerCase()}.tfvars"
+  BACKEND_FILE = "ENVS/${params.ENV}/${params.ENV.toLowerCase()}_backend.tfvars"
+  AWS_DEFAULT_REGION = 'us-east-1'
+}
 
     tools {
         terraform 'terraform-1.12.2'
