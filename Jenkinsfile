@@ -9,7 +9,7 @@ pipeline {
         BACKEND_CONFIG = "ENVS/${params.ENV.toUpperCase()}/${params.ENV.toLowerCase()}_backend.tfvars"
     }
     tools {
-        terraform 'terraform-1.5.7'
+        terraform 'terraform-1.12.2'
     }
     stages {
         stage('Checkout') {
